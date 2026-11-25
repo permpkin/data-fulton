@@ -22,14 +22,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           V=$(node -p "require('./package.json').version")
-          MAJOR=${V%%.*}; REST=${V#*.}; MINOR=${REST%%.*}; PATCH=${REST##*.}
-          NV="$MAJOR.$MINOR.$((PATCH+1))"
-          node -e "const f='package.json',j=require('./'+f);j.version='$NV';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
-          node -e "const f='src-tauri/tauri.conf.json',j=require('./'+f);j.version='$NV';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
-          sed -i '' "s/^version = \".*\"/version = \"$NV\"/" src-tauri/Cargo.toml 2>/dev/null || \
-          sed -i "s/^version = \".*\"/version = \"$NV\"/" src-tauri/Cargo.toml
-          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
-          git commit -m "chore: bump version to $NV"
+          # Bump only if a tag for the current version already exists (first release keeps current version)
+          if git ls-remote --exit-code --tags origin "refs/tags/v$V" >/dev/null 2>&1; then
+            MAJOR=${V%%.*}; REST=${V#*.}; MINOR=${REST%%.*}; PATCH=${REST##*.}
+            NV="$MAJOR.$MINOR.$((PATCH+1))"
+            node -e "const f='package.json',j=require('./'+f);j.version='$NV';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
+            node -e "const f='src-tauri/tauri.conf.json',j=require('./'+f);j.version='$NV';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
+            sed -i '' "s/^version = \".*\"/version = \"$NV\"/" src-tauri/Cargo.toml 2>/dev/null || \
+            sed -i "s/^version = \".*\"/version = \"$NV\"/" src-tauri/Cargo.toml
+            git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+            git commit -m "chore: bump version to $NV"
+          else
+            NV="$V"
+          fi
           git tag "v$NV"
           git push && git push --tags
           echo "version=$NV" >> "$GITHUB_OUTPUT"
