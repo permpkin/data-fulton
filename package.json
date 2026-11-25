@@ -1,7 +1,7 @@
 {
   "name": "datafulton",
   "productName": "DataFulton",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Read-only data extractor for Prime Ecosystem (primeeco.tech) accounts",
   "type": "module",
