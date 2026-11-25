@@ -38,15 +38,17 @@ pub struct AppState {
 
 /// (Re)create the connections launcher window.
 pub fn open_connections_window(app: &AppHandle) {
-    let _ = tauri::WebviewWindowBuilder::new(
+    let builder = tauri::WebviewWindowBuilder::new(
         app,
         "connections",
         tauri::WebviewUrl::App("index.html#connections".into()),
     )
     .title("DataFulton")
     .inner_size(440.0, 340.0)
-    .min_inner_size(400.0, 340.0)
-    .title_bar_style(tauri::TitleBarStyle::Transparent)
+    .min_inner_size(400.0, 340.0);
+    #[cfg(target_os = "macos")]
+    let builder = builder.title_bar_style(tauri::TitleBarStyle::Transparent);
+    let _ = builder
     .visible(false)
     .on_page_load(|w, _| {
         let _ = w.show();
@@ -56,15 +58,17 @@ pub fn open_connections_window(app: &AppHandle) {
 
 /// Create the main extractions window.
 fn open_main_window(app: &AppHandle) {
-    let _ = tauri::WebviewWindowBuilder::new(
+    let builder = tauri::WebviewWindowBuilder::new(
         app,
         "main",
         tauri::WebviewUrl::App("index.html#main".into()),
     )
     .title("DataFulton — Extractions")
     .inner_size(560.0, 520.0)
-    .min_inner_size(480.0, 520.0)
-    .title_bar_style(tauri::TitleBarStyle::Transparent)
+    .min_inner_size(480.0, 520.0);
+    #[cfg(target_os = "macos")]
+    let builder = builder.title_bar_style(tauri::TitleBarStyle::Transparent);
+    let _ = builder
     .visible(false)
     .on_page_load(|w, _| {
         let _ = w.show();
