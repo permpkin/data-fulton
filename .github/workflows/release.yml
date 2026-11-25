@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[release]')
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump patch version everywhere
+        id: bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          V=$(node -p "require('./package.json').version")
+          MAJOR=${V%%.*}; REST=${V#*.}; MINOR=${REST%%.*}; PATCH=${REST##*.}
+          NV="$MAJOR.$MINOR.$((PATCH+1))"
+          node -e "const f='package.json',j=require('./'+f);j.version='$NV';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
+          node -e "const f='src-tauri/tauri.conf.json',j=require('./'+f);j.version='$NV';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
+          sed -i '' "s/^version = \".*\"/version = \"$NV\"/" src-tauri/Cargo.toml 2>/dev/null || \
+          sed -i "s/^version = \".*\"/version = \"$NV\"/" src-tauri/Cargo.toml
+          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+          git commit -m "chore: bump version to $NV"
+          git tag "v$NV"
+          git push && git push --tags
+          echo "version=$NV" >> "$GITHUB_OUTPUT"
+          echo "tag=v$NV" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: version
+    if: contains(github.event.head_commit.message, '[release]')
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install deps
+        run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ needs.version.outputs.tag }}
+          releaseName: DataFulton v${{ needs.version.outputs.version }}
+          releaseBody: "Automated release from commit ${{ github.sha }}"
+          releaseDraft: false
+          prerelease: false
