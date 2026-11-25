@@ -92,6 +92,19 @@ npm run build      # produces native bundles in src-tauri/target/release/bundle/
 Unsigned builds work fine locally; for distribution you'll want to sign/notarize
 (see `tauri.conf.json` → `bundle`).
 
+### Running an unsigned macOS download
+
+Releases ship a universal `.dmg` (Apple Silicon + Intel) but the app is **not
+code-signed**, so macOS will quarantine it and report "damaged and can't be
+opened". After copying to `/Applications`, clear the quarantine flag:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/DataFulton.app
+```
+
+or right-click the app → **Open** → **Open** anyway. To distribute without this
+step you'd need an Apple Developer Program signing certificate.
+
 ## Notes on provider APIs
 
 - Auth: `Authorization: Bearer <key>` (bearer providers) or client-credentials →
